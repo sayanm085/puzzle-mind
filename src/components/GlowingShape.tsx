@@ -38,7 +38,7 @@ const GlowingShape: React.FC<GlowingShapeProps> = memo(({
       friction: 5,
       tension: 100,
       useNativeDriver: true,
-      delay: shape.id * 50,
+      delay: (typeof shape.id === 'number' ? shape.id : 0) * 50,
     }).start();
 
     // Continuous glow animation
