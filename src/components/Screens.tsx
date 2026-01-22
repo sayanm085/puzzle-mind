@@ -244,6 +244,7 @@ export const VoidScreen: React.FC<VoidScreenProps> = ({ onAwaken }) => {
 // ─────────────────────────────────────────────────────────────────────────────────
 // NEXUS SCREEN - The Hub
 // "The nexus of all dimensions. Your journey begins here."
+// Elite AAA-Quality Redesign
 // ─────────────────────────────────────────────────────────────────────────────────
 
 interface NexusScreenProps {
@@ -265,51 +266,105 @@ export const NexusScreen: React.FC<NexusScreenProps> = ({
 }) => {
   const entranceAnim = useRef(new Animated.Value(0)).current;
   const headerAnim = useRef(new Animated.Value(0)).current;
-  const dailyCardAnim = useRef(new Animated.Value(0)).current;
+  const heroAnim = useRef(new Animated.Value(0)).current;
+  const cardsAnim = useRef(new Animated.Value(0)).current;
   const gridAnim = useRef(new Animated.Value(0)).current;
+  const breatheAnim = useRef(new Animated.Value(0)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
   
   useEffect(() => {
     // Staggered entrance animations for premium feel
-    Animated.stagger(150, [
+    Animated.stagger(120, [
       Animated.timing(entranceAnim, {
         toValue: 1,
-        duration: 600,
+        duration: 800,
         easing: CINEMATIC_EASING.heavyOut,
         useNativeDriver: true,
       }),
       Animated.timing(headerAnim, {
         toValue: 1,
-        duration: 500,
+        duration: 600,
         easing: CINEMATIC_EASING.smoothOut,
         useNativeDriver: true,
       }),
-      Animated.timing(dailyCardAnim, {
+      Animated.timing(heroAnim, {
         toValue: 1,
-        duration: 400,
+        duration: 700,
+        easing: CINEMATIC_EASING.smoothOut,
+        useNativeDriver: true,
+      }),
+      Animated.timing(cardsAnim, {
+        toValue: 1,
+        duration: 500,
         easing: CINEMATIC_EASING.smoothOut,
         useNativeDriver: true,
       }),
       Animated.timing(gridAnim, {
         toValue: 1,
-        duration: 500,
+        duration: 600,
         easing: CINEMATIC_EASING.smoothOut,
         useNativeDriver: true,
       }),
     ]).start();
+    
+    // Ambient breathing
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(breatheAnim, {
+          toValue: 1,
+          duration: 4000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(breatheAnim, {
+          toValue: 0,
+          duration: 4000,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+    
+    // Hero pulse
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.02,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
   }, []);
   
   // Get greeting based on time and player state
   const greeting = getTimeBasedGreeting(playerMind);
+  const accuracy = Math.round(playerMind.lifetimeAccuracy * 100);
+  const stage = playerMind.evolutionStage || 1;
   
-  // Only show first 6 sectors for cleaner grid
-  const visibleSectors = SECTORS.slice(0, 6);
+  // Only show first 4 sectors for cleaner grid
+  const visibleSectors = SECTORS.slice(0, 4);
+  
+  // Calculate cognitive summary
+  const cogVector = playerMind.cognitiveVector;
+  const avgCognitive = Math.round(
+    (cogVector.perception + cogVector.spatial + cogVector.logic + 
+     cogVector.temporal + cogVector.working_memory + cogVector.pattern_recognition) / 6
+  );
   
   return (
-    <BreathingBackground primaryColor="#0A0F1A" secondaryColor="#020408">
-      <VoidParticles count={60} color="#7B68EE" speed={0.25} />
+    <BreathingBackground primaryColor="#050810" secondaryColor="#000204">
+      <VoidParticles count={40} color="#4a9eff" speed={0.15} />
       
-      <View style={styles.nexusContainer}>
-        {/* Header with stagger animation */}
+      <ScrollView 
+        style={styles.nexusContainer}
+        contentContainerStyle={styles.nexusContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* ══════ HEADER ══════ */}
         <Animated.View
           style={[
             styles.nexusHeader,
@@ -318,102 +373,258 @@ export const NexusScreen: React.FC<NexusScreenProps> = ({
               transform: [{
                 translateY: headerAnim.interpolate({
                   inputRange: [0, 1],
-                  outputRange: [-20, 0],
+                  outputRange: [-30, 0],
                 }),
               }],
             },
           ]}
         >
-          <View>
+          <View style={styles.headerLeft}>
             <Text style={styles.nexusGreeting}>{greeting.text}</Text>
-            <Text style={styles.nexusTitle}>THE NEXUS</Text>
+            <Text style={styles.nexusTitle}>NEXUS</Text>
           </View>
+          
           <TouchableOpacity onPress={onProfileOpen} style={styles.profileButton}>
-            <ProgressRing
-              progress={Math.min(playerMind.totalSessions / 10, 1)}
-              size={54}
-              color="#7B68EE"
-            >
-              <Text style={styles.profileLevel}>{playerMind.totalSessions}</Text>
-            </ProgressRing>
-          </TouchableOpacity>
-        </Animated.View>
-        
-        {/* Daily Trial Banner with enhanced animation */}
-        <Animated.View
-          style={{
-            opacity: dailyCardAnim,
-            transform: [{
-              translateX: dailyCardAnim.interpolate({
-                inputRange: [0, 1],
-                outputRange: [-30, 0],
-              }),
-            }, {
-              scale: dailyCardAnim.interpolate({
-                inputRange: [0, 1],
-                outputRange: [0.95, 1],
-              }),
-            }],
-          }}
-        >
-          <TouchableOpacity onPress={onDailyTrialOpen} activeOpacity={0.85}>
-            <FloatingCard color="#FFE66D" style={styles.dailyTrialCard}>
-              <View style={styles.dailyTrialContent}>
-                <View style={styles.dailyTrialInfo}>
-                  <View style={styles.dailyTrialBadge}>
-                    <Text style={styles.dailyTrialLabel}>DAILY TRIAL</Text>
-                  </View>
-                  <Text style={styles.dailyTrialTitle}>Today's Challenge Awaits</Text>
-                  <Text style={styles.dailyTrialSubtext}>Earn bonus rewards</Text>
-                </View>
-                <View style={styles.dailyTrialIconContainer}>
-                  <Text style={styles.dailyTrialIcon}>⚡</Text>
-                </View>
+            <View style={styles.profileRing}>
+              <View style={styles.profileInner}>
+                <Text style={styles.profileStage}>{stage}</Text>
               </View>
-            </FloatingCard>
+              {/* Progress arc would go here */}
+            </View>
+            <Text style={styles.profileLabel}>MIND</Text>
           </TouchableOpacity>
         </Animated.View>
-        
-        <SectionDivider color="#7B68EE" />
-        
-        {/* Sector Grid with enhanced animation */}
+
+        {/* ══════ HERO STATS CARD ══════ */}
         <Animated.View
-          style={{
-            flex: 1,
-            opacity: gridAnim,
-            transform: [{
-              translateY: gridAnim.interpolate({
-                inputRange: [0, 1],
-                outputRange: [40, 0],
-              }),
-            }],
-          }}
+          style={[
+            styles.heroCard,
+            {
+              opacity: heroAnim,
+              transform: [
+                { scale: Animated.multiply(heroAnim, pulseAnim) },
+                {
+                  translateY: heroAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [20, 0],
+                  }),
+                },
+              ],
+            },
+          ]}
         >
-          <Text style={styles.sectorGridTitle}>DIMENSIONAL PORTALS</Text>
-          <ScrollView
-            style={styles.sectorScroll}
-            contentContainerStyle={styles.sectorGrid}
-            showsVerticalScrollIndicator={false}
-          >
-            {visibleSectors.slice(0, 4).map((sector, index) => (
-              <DimensionalPortal
-                key={sector.id}
-                sector={sector}
-                onEnter={onSectorSelect}
-                index={index}
-                isLocked={!unlockedSectors.includes(sector.id)}
-                progress={sectorProgress[sector.id] || 0}
-              />
-            ))}
-            {/* View all button */}
-            <View style={styles.viewAllContainer}>
-              <TouchableOpacity style={styles.viewAllButton}>
-                <Text style={styles.viewAllText}>VIEW ALL SECTORS →</Text>
-              </TouchableOpacity>
+          <LinearGradient
+            colors={['rgba(74, 158, 255, 0.08)', 'rgba(139, 92, 246, 0.04)', 'transparent']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.heroGradient}
+          />
+          
+          <View style={styles.heroContent}>
+            {/* Main stat */}
+            <View style={styles.heroMainStat}>
+              <Text style={styles.heroStatValue}>{playerMind.totalSessions}</Text>
+              <Text style={styles.heroStatLabel}>SESSIONS</Text>
             </View>
-          </ScrollView>
+            
+            {/* Divider */}
+            <View style={styles.heroDivider} />
+            
+            {/* Secondary stats */}
+            <View style={styles.heroSecondaryStats}>
+              <View style={styles.heroSecondary}>
+                <Text style={styles.secondaryValue}>{accuracy}%</Text>
+                <Text style={styles.secondaryLabel}>ACCURACY</Text>
+              </View>
+              <View style={styles.heroSecondary}>
+                <Text style={styles.secondaryValue}>{avgCognitive}</Text>
+                <Text style={styles.secondaryLabel}>COGNITIVE</Text>
+              </View>
+              <View style={styles.heroSecondary}>
+                <Text style={styles.secondaryValue}>{playerMind.totalTrials}</Text>
+                <Text style={styles.secondaryLabel}>TRIALS</Text>
+              </View>
+            </View>
+          </View>
+          
+          {/* Subtle bottom accent */}
+          <View style={styles.heroAccent} />
         </Animated.View>
-      </View>
+
+        {/* ══════ QUICK ACTIONS ══════ */}
+        <Animated.View
+          style={[
+            styles.quickActions,
+            {
+              opacity: cardsAnim,
+              transform: [{
+                translateY: cardsAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [30, 0],
+                }),
+              }],
+            },
+          ]}
+        >
+          {/* Daily Trial Card */}
+          <TouchableOpacity 
+            onPress={onDailyTrialOpen} 
+            activeOpacity={0.8}
+            style={styles.actionCard}
+          >
+            <LinearGradient
+              colors={['rgba(251, 191, 36, 0.12)', 'rgba(251, 191, 36, 0.03)']}
+              style={styles.actionGradient}
+            />
+            <View style={styles.actionIcon}>
+              <Text style={styles.actionEmoji}>⚡</Text>
+            </View>
+            <View style={styles.actionInfo}>
+              <Text style={styles.actionTitle}>Daily Trial</Text>
+              <Text style={styles.actionSubtitle}>Today's challenge</Text>
+            </View>
+            <View style={styles.actionArrow}>
+              <Text style={styles.arrowText}>→</Text>
+            </View>
+          </TouchableOpacity>
+          
+          {/* Continue Training Card */}
+          <TouchableOpacity 
+            onPress={() => onSectorSelect('genesis')} 
+            activeOpacity={0.8}
+            style={styles.actionCard}
+          >
+            <LinearGradient
+              colors={['rgba(74, 158, 255, 0.12)', 'rgba(74, 158, 255, 0.03)']}
+              style={styles.actionGradient}
+            />
+            <View style={styles.actionIcon}>
+              <Text style={styles.actionEmoji}>🎯</Text>
+            </View>
+            <View style={styles.actionInfo}>
+              <Text style={styles.actionTitle}>Continue</Text>
+              <Text style={styles.actionSubtitle}>Resume training</Text>
+            </View>
+            <View style={styles.actionArrow}>
+              <Text style={styles.arrowText}>→</Text>
+            </View>
+          </TouchableOpacity>
+        </Animated.View>
+
+        {/* ══════ SECTOR GRID ══════ */}
+        <Animated.View
+          style={[
+            styles.sectorSection,
+            {
+              opacity: gridAnim,
+              transform: [{
+                translateY: gridAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [40, 0],
+                }),
+              }],
+            },
+          ]}
+        >
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>DIMENSIONS</Text>
+            <TouchableOpacity>
+              <Text style={styles.sectionAction}>View All</Text>
+            </TouchableOpacity>
+          </View>
+          
+          <View style={styles.sectorGrid}>
+            {visibleSectors.map((sector, index) => {
+              const isLocked = !unlockedSectors.includes(sector.id);
+              const progress = sectorProgress[sector.id] || 0;
+              
+              return (
+                <TouchableOpacity
+                  key={sector.id}
+                  style={[
+                    styles.sectorCard,
+                    isLocked && styles.sectorCardLocked,
+                  ]}
+                  onPress={() => !isLocked && onSectorSelect(sector.id)}
+                  activeOpacity={isLocked ? 1 : 0.8}
+                >
+                  <LinearGradient
+                    colors={isLocked 
+                      ? ['rgba(30, 30, 40, 0.6)', 'rgba(20, 20, 30, 0.8)']
+                      : [`${sector.color}15`, `${sector.color}05`]
+                    }
+                    style={styles.sectorGradient}
+                  />
+                  
+                  {/* Icon */}
+                  <View style={[
+                    styles.sectorIconContainer,
+                    { borderColor: isLocked ? '#333' : sector.color },
+                  ]}>
+                    <Text style={[
+                      styles.sectorIcon,
+                      isLocked && styles.sectorIconLocked,
+                    ]}>
+                      {sector.icon}
+                    </Text>
+                  </View>
+                  
+                  {/* Info */}
+                  <Text style={[
+                    styles.sectorName,
+                    isLocked && styles.sectorNameLocked,
+                  ]}>
+                    {sector.name}
+                  </Text>
+                  
+                  {/* Progress or Lock */}
+                  {isLocked ? (
+                    <Text style={styles.sectorLockText}>🔒</Text>
+                  ) : progress > 0 ? (
+                    <View style={styles.sectorProgressBar}>
+                      <View 
+                        style={[
+                          styles.sectorProgressFill,
+                          { width: `${progress * 100}%`, backgroundColor: sector.color },
+                        ]} 
+                      />
+                    </View>
+                  ) : (
+                    <Text style={styles.sectorNewText}>NEW</Text>
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </Animated.View>
+
+        {/* ══════ INSIGHT CARD ══════ */}
+        <Animated.View
+          style={[
+            styles.insightSection,
+            {
+              opacity: gridAnim,
+            },
+          ]}
+        >
+          <View style={styles.insightCard}>
+            <View style={styles.insightHeader}>
+              <Text style={styles.insightLabel}>💡 INSIGHT</Text>
+            </View>
+            <Text style={styles.insightText}>
+              {playerMind.totalSessions === 0 
+                ? "Begin your journey. The void awaits your first thought."
+                : playerMind.lifetimeAccuracy > 0.7
+                  ? "Your pattern recognition is sharp. Challenge yourself with harder dimensions."
+                  : "Consistency builds mastery. Each session strengthens neural pathways."
+              }
+            </Text>
+          </View>
+        </Animated.View>
+
+        {/* Bottom spacing for nav bar */}
+        <View style={{ height: 120 }} />
+      </ScrollView>
     </BreathingBackground>
   );
 };
@@ -841,32 +1052,302 @@ const styles = StyleSheet.create({
     bottom: 100,
   },
   
-  // Nexus Screen
+  // Nexus Screen - Elite Redesign
   nexusContainer: {
     flex: 1,
+  },
+  nexusContent: {
     paddingTop: 60,
     paddingHorizontal: 20,
   },
   nexusHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 24,
+  },
+  headerLeft: {
+    flex: 1,
+  },
+  nexusGreeting: {
+    fontSize: 13,
+    color: '#64748b',
+    letterSpacing: 1,
+    marginBottom: 4,
+  },
+  nexusTitle: {
+    fontSize: 32,
+    fontWeight: '200',
+    color: '#ffffff',
+    letterSpacing: 6,
+  },
+  profileButton: {
+    alignItems: 'center',
+    padding: 4,
+  },
+  profileRing: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 2,
+    borderColor: '#4a9eff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(74, 158, 255, 0.1)',
+  },
+  profileInner: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(74, 158, 255, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  profileStage: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#4a9eff',
+  },
+  profileLabel: {
+    fontSize: 9,
+    color: '#64748b',
+    letterSpacing: 1,
+    marginTop: 4,
+  },
+  
+  // Hero Stats Card
+  heroCard: {
+    backgroundColor: 'rgba(15, 20, 30, 0.8)',
+    borderRadius: 20,
+    overflow: 'hidden',
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(74, 158, 255, 0.15)',
+  },
+  heroGradient: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  heroContent: {
+    padding: 24,
+  },
+  heroMainStat: {
     alignItems: 'center',
     marginBottom: 20,
   },
-  nexusGreeting: {
-    fontSize: 12,
-    color: '#888888',
+  heroStatValue: {
+    fontSize: 56,
+    fontWeight: '200',
+    color: '#ffffff',
     letterSpacing: 2,
   },
-  nexusTitle: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    letterSpacing: 4,
+  heroStatLabel: {
+    fontSize: 11,
+    color: '#64748b',
+    letterSpacing: 3,
+    marginTop: 4,
   },
-  profileButton: {
-    padding: 5,
+  heroDivider: {
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    marginBottom: 20,
   },
+  heroSecondaryStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  heroSecondary: {
+    alignItems: 'center',
+  },
+  secondaryValue: {
+    fontSize: 22,
+    fontWeight: '500',
+    color: '#e2e8f0',
+  },
+  secondaryLabel: {
+    fontSize: 9,
+    color: '#64748b',
+    letterSpacing: 1.5,
+    marginTop: 4,
+  },
+  heroAccent: {
+    height: 3,
+    backgroundColor: '#4a9eff',
+    opacity: 0.6,
+  },
+  
+  // Quick Actions
+  quickActions: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 28,
+  },
+  actionCard: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(20, 25, 35, 0.8)',
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.06)',
+    overflow: 'hidden',
+  },
+  actionGradient: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  actionIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  actionEmoji: {
+    fontSize: 20,
+  },
+  actionInfo: {
+    flex: 1,
+  },
+  actionTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#e2e8f0',
+  },
+  actionSubtitle: {
+    fontSize: 11,
+    color: '#64748b',
+    marginTop: 2,
+  },
+  actionArrow: {
+    width: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  arrowText: {
+    fontSize: 16,
+    color: '#64748b',
+  },
+  
+  // Sector Grid Section
+  sectorSection: {
+    marginBottom: 24,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 12,
+    color: '#64748b',
+    letterSpacing: 3,
+    fontWeight: '600',
+  },
+  sectionAction: {
+    fontSize: 12,
+    color: '#4a9eff',
+    letterSpacing: 1,
+  },
+  sectorGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  sectorCard: {
+    width: (SCREEN_WIDTH - 52) / 2,
+    backgroundColor: 'rgba(20, 25, 35, 0.8)',
+    borderRadius: 16,
+    padding: 16,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.06)',
+    overflow: 'hidden',
+  },
+  sectorCardLocked: {
+    opacity: 0.5,
+  },
+  sectorGradient: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  sectorIconContainer: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    borderWidth: 2,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    marginBottom: 12,
+  },
+  sectorIcon: {
+    fontSize: 24,
+  },
+  sectorIconLocked: {
+    opacity: 0.4,
+  },
+  sectorName: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#e2e8f0',
+    letterSpacing: 1,
+    marginBottom: 8,
+  },
+  sectorNameLocked: {
+    color: '#64748b',
+  },
+  sectorProgressBar: {
+    width: '100%',
+    height: 3,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 1.5,
+    overflow: 'hidden',
+  },
+  sectorProgressFill: {
+    height: '100%',
+    borderRadius: 1.5,
+  },
+  sectorLockText: {
+    fontSize: 12,
+  },
+  sectorNewText: {
+    fontSize: 9,
+    color: '#4a9eff',
+    letterSpacing: 2,
+    fontWeight: '600',
+  },
+  
+  // Insight Section
+  insightSection: {
+    marginBottom: 20,
+  },
+  insightCard: {
+    backgroundColor: 'rgba(139, 92, 246, 0.08)',
+    borderRadius: 14,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(139, 92, 246, 0.15)',
+  },
+  insightHeader: {
+    marginBottom: 8,
+  },
+  insightLabel: {
+    fontSize: 10,
+    color: '#a78bfa',
+    letterSpacing: 2,
+    fontWeight: '600',
+  },
+  insightText: {
+    fontSize: 14,
+    color: '#c4b5fd',
+    lineHeight: 20,
+  },
+  
+  // Legacy styles kept for compatibility
   profileLevel: {
     fontSize: 16,
     fontWeight: '700',
@@ -929,14 +1410,6 @@ const styles = StyleSheet.create({
   },
   sectorScroll: {
     flex: 1,
-  },
-  sectorGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 120,
   },
   viewAllContainer: {
     width: '100%',
@@ -1010,7 +1483,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginVertical: 20,
   },
-  sectionTitle: {
+  reflectionSectionTitle: {
     fontSize: 12,
     color: '#666666',
     letterSpacing: 3,

@@ -33,6 +33,7 @@ import {
 } from './components/Screens';
 import { SectorDetailScreen } from './components/SectorDetailScreen';
 import { GameScreen } from './components/GameScreen';
+import { CosmosScreen } from './components/CosmosScreen';
 import { CosmicNavBar } from './components/DimensionalMenu';
 import { ScreenTransition } from './components/SpatialUI';
 
@@ -398,6 +399,17 @@ export const CosmosMindApp: React.FC = () => {
         return (
           <ProfileScreen
             playerMind={playerMind}
+            onBack={handleBackToNexus}
+          />
+        );
+      
+      case 'cosmos':
+        return (
+          <CosmosScreen
+            playerMind={playerMind}
+            unlockedSectors={unlockedSectors}
+            sectorProgress={sectorProgress}
+            onSectorSelect={handleSectorSelect}
             onBack={handleBackToNexus}
           />
         );
