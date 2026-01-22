@@ -466,7 +466,7 @@ export const NexusScreen: React.FC<NexusScreenProps> = ({
             },
           ]}
         >
-          {/* Daily Trial Card */}
+          {/* Daily Challenge Card */}
           <TouchableOpacity 
             onPress={onDailyTrialOpen} 
             activeOpacity={0.8}
@@ -480,8 +480,8 @@ export const NexusScreen: React.FC<NexusScreenProps> = ({
               <Text style={styles.actionEmoji}>⚡</Text>
             </View>
             <View style={styles.actionInfo}>
-              <Text style={styles.actionTitle}>Daily Trial</Text>
-              <Text style={styles.actionSubtitle}>Today's challenge</Text>
+              <Text style={styles.actionTitle}>Daily Challenge</Text>
+              <Text style={styles.actionSubtitle}>New challenge awaits</Text>
             </View>
             <View style={styles.actionArrow}>
               <Text style={styles.arrowText}>→</Text>

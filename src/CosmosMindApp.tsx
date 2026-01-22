@@ -248,7 +248,8 @@ export const CosmosMindApp: React.FC = () => {
       const trial = generateDailyTrial(new Date());
       setDailyTrial(trial);
     }
-    navigateTo('trial');
+    // Daily challenge uses genesis sector as base
+    navigateTo('trial', { sectorId: 'genesis', chamberId: 'daily_challenge' });
   }, [navigateTo, dailyTrial]);
   
   const handleSessionComplete = useCallback((score: number, accuracy: number) => {
