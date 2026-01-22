@@ -46,18 +46,18 @@ export const COLORS = {
 
 // Extended glow colors for more variety
 export const GLOW_COLORS = [
-  { main: '#00FFFF', glow: '#00FFFF40', name: 'Cyan' },
-  { main: '#FF00FF', glow: '#FF00FF40', name: 'Magenta' },
-  { main: '#8B5CF6', glow: '#8B5CF640', name: 'Violet' },
-  { main: '#FFD700', glow: '#FFD70040', name: 'Gold' },
-  { main: '#00FF88', glow: '#00FF8840', name: 'Emerald' },
-  { main: '#FF6B9D', glow: '#FF6B9D40', name: 'Rose' },
-  { main: '#FF8C42', glow: '#FF8C4240', name: 'Orange' },
-  { main: '#00BFFF', glow: '#00BFFF40', name: 'Sky' },
-  { main: '#CCFF00', glow: '#CCFF0040', name: 'Lime' },
-  { main: '#FF69B4', glow: '#FF69B440', name: 'Pink' },
-  { main: '#00CED1', glow: '#00CED140', name: 'Teal' },
-  { main: '#FF7F50', glow: '#FF7F5040', name: 'Coral' },
+  { hex: '#00FFFF', name: 'Cyan' },
+  { hex: '#FF00FF', name: 'Magenta' },
+  { hex: '#8B5CF6', name: 'Violet' },
+  { hex: '#FFD700', name: 'Gold' },
+  { hex: '#00FF88', name: 'Emerald' },
+  { hex: '#FF6B9D', name: 'Rose' },
+  { hex: '#FF8C42', name: 'Orange' },
+  { hex: '#00BFFF', name: 'Sky' },
+  { hex: '#CCFF00', name: 'Lime' },
+  { hex: '#FF69B4', name: 'Pink' },
+  { hex: '#00CED1', name: 'Teal' },
+  { hex: '#FF7F50', name: 'Coral' },
 ];
 
 // World-specific color themes
@@ -74,8 +74,8 @@ export const WORLD_THEMES = {
   10: { primary: COLORS.gold, secondary: COLORS.amber, accent: COLORS.orange },
 };
 
-// Gradient presets
-export const GRADIENTS = {
+// Gradient presets (must have at least 2 colors for LinearGradient)
+export const GRADIENTS: Record<string, [string, string, ...string[]]> = {
   void: [COLORS.void, COLORS.abyss, COLORS.cosmos],
   cosmic: [COLORS.deep, COLORS.violet + '20', COLORS.deep],
   aurora: [COLORS.void, COLORS.emerald + '15', COLORS.cyan + '10', COLORS.void],

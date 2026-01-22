@@ -18,54 +18,62 @@ export type ChallengeType =
 export type ShapeType = 'circle' | 'square' | 'diamond' | 'triangle' | 'hexagon' | 'star' | 'pentagon' | 'octagon';
 export type Screen = 'home' | 'galaxy' | 'puzzle' | 'victory' | 'defeat';
 
-// Difficulty vector - 8 dimensions of challenge
+// Skill vector for player profiling
+export interface SkillVector {
+  visual: number;
+  spatial: number;
+  logical: number;
+  temporal: number;
+}
+
+// Difficulty vector - adaptive challenge parameters
 export interface DifficultyVector {
-  shapeCount: number;        // 3-12 shapes
-  colorSimilarity: number;   // 0-1, how close colors are
-  sizeVariance: number;      // 0-1, range of sizes
-  movementSpeed: number;     // 0-1, if shapes move
-  timeLimit: number;         // seconds per round
-  ruleComplexity: number;    // 1-5 scale
-  distractorCount: number;   // wrong answers that look right
-  spatialDensity: number;    // 0-1, how clustered shapes are
+  timePressure: number;       // Time multiplier
+  shapeCount: number;         // 3-12 shapes
+  challengeComplexity: number; // 0-1 complexity
+  visualNoise: number;        // 0-1 visual distraction
+  distractorCount: number;    // wrong answers that look right
 }
 
 // Individual round behavior tracking
 export interface RoundBehavior {
   roundNumber: number;
-  reactionTimeMs: number;
-  hesitationCount: number;
-  selectedCorrect: boolean;
+  responseTime: number;
+  wasCorrect: boolean;
   challengeType: ChallengeType;
-  difficultyVector: DifficultyVector;
+  selectedPosition?: { x: number; y: number };
+  correctPosition?: { x: number; y: number };
+  shapeContext?: any;
   timestamp: number;
-  clutchSave: boolean;
 }
 
 // Error pattern tracking for adaptive learning
 export interface ErrorPattern {
   challengeType: ChallengeType;
-  errorCount: number;
-  lastOccurred: number;
-  domain: 'visual' | 'spatial' | 'logical' | 'temporal';
+  responseTime: number;
+  timestamp: number;
+  correctPosition?: { x: number; y: number };
+  selectedPosition?: { x: number; y: number };
+  shapeContext?: any;
 }
 
 // Complete player behavior profile
 export interface PlayerBehaviorProfile {
-  sessionId: string;
-  sessionStartTime: number;
-  rounds: RoundBehavior[];
+  averageResponseTime: number;
+  responseTimeVariance: number;
+  recentResponseTime: number;
+  accuracy: number;
+  recentAccuracy: number;
+  challengeAccuracy?: Record<string, number>;
+  skillVector: SkillVector;
+  positionBias?: { corner: number; edge: number; center: number };
   errorPatterns: ErrorPattern[];
-  averageReactionTime: number;
-  consistencyScore: number;
-  confidenceIndicator: number;
-  streakHistory: number[];
-  peakPerformanceRound: number;
-  fatigueIndicator: number;
-  totalHesitations: number;
-  clutchSuccesses: number;
-  perfectRounds: number;
-  comboMultiplier: number;
+  totalRounds: number;
+  currentStreak: number;
+  longestStreak: number;
+  sessionDuration: number;
+  preferredChallenges: ChallengeType[];
+  struggleChallenges: ChallengeType[];
 }
 
 // Performance vector for radar chart
@@ -81,24 +89,22 @@ export interface PerformanceVector {
 // Scoring configuration
 export interface ScoringConfig {
   basePoints: number;
-  speedMultiplier: number;
-  difficultyMultiplier: number;
-  challengeTypeWeight: number;
-  consistencyBonus: number;
-  streakMultiplier: number;
-  clutchBonus: number;
-  perfectBonus: number;
-  comboBonus: number;
+  streakMultiplierMax: number;
+  streakMultiplierIncrement: number;
+  speedBonusMax: number;
+  accuracyBonusMax: number;
+  difficultyMultiplierRange: [number, number];
+  comboThreshold: number;
+  perfectRoundBonus: number;
 }
 
 // Insight rule for post-match analysis
 export interface InsightRule {
   id: string;
   condition: (profile: PlayerBehaviorProfile) => boolean;
-  insight: string;
-  category: 'performance' | 'behavioral' | 'skill' | 'milestone';
-  priority: number;
-  emoji?: string;
+  message: string;
+  icon: string;
+  category: 'tempo' | 'precision' | 'mastery' | 'pattern' | 'flow' | 'milestone';
 }
 
 // Challenge definition with metadata
@@ -108,12 +114,12 @@ export interface ChallengeDefinition {
   baseWeight: number;
   description: string;
   unlockLevel: number;
+  complexity: number;
 }
 
 // Glow color type
 export interface GlowColor {
-  main: string;
-  glow: string;
+  hex: string;
   name: string;
 }
 
@@ -125,12 +131,13 @@ export interface Shape {
   size: number;
   x: number;
   y: number;
-  brightness: number;
+  glowIntensity: number;
   rotation: number;
-  appearTime?: number;
-  isFlickering?: boolean;
-  isShifting?: boolean;
+  appearanceOrder?: number;
+  isMoving?: boolean;
+  isRotating?: boolean;
   isPulsing?: boolean;
+  isFlickering?: boolean;
 }
 
 // Level interface
@@ -167,6 +174,7 @@ export interface Particle {
   size: number;
   opacity: number;
   speed: number;
+  angle: number;
   color: string;
 }
 
