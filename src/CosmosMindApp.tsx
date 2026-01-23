@@ -11,6 +11,7 @@ import {
   StatusBar,
   Animated,
   Platform,
+  BackHandler,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
@@ -266,17 +267,66 @@ export const CosmosMindApp: React.FC = () => {
       lastUpdated: Date.now(),
     }));
     
-    // Mark chamber as completed
-    if (appState.currentChamberId) {
-      setCompletedChambers(prev => 
-        prev.includes(appState.currentChamberId!) 
+    // Mark chamber as completed and check for sector unlock
+    if (appState.currentChamberId && appState.currentSectorId) {
+      const currentSectorId = appState.currentSectorId;
+      const currentChamberId = appState.currentChamberId;
+      
+      setCompletedChambers(prev => {
+        const newCompleted = prev.includes(currentChamberId) 
           ? prev 
-          : [...prev, appState.currentChamberId!]
-      );
+          : [...prev, currentChamberId];
+        
+        // Get current sector info
+        const currentSector = SECTORS.find(s => s.id === currentSectorId);
+        if (currentSector) {
+          // Count completed chambers for this sector
+          const sectorChamberIds = currentSector.chambers.map(c => c.id);
+          const completedInSector = newCompleted.filter(id => sectorChamberIds.includes(id)).length;
+          const totalInSector = currentSector.totalChambers;
+          
+          // Update sector progress
+          setSectorProgress(prevProgress => ({
+            ...prevProgress,
+            [currentSectorId]: completedInSector / totalInSector,
+          }));
+          
+          // Check if sector is now complete - unlock next sectors
+          if (completedInSector >= totalInSector) {
+            // Define sector unlock order (matching actual SECTORS)
+            const sectorUnlockMap: Record<string, string[]> = {
+              'genesis': ['prisma', 'void'],       // Genesis unlocks Prisma and Void
+              'prisma': ['axiom'],                 // Prisma unlocks Axiom
+              'void': ['chronos'],                 // Void unlocks Chronos
+              'axiom': ['nexus'],                  // Axiom unlocks Nexus
+              'chronos': ['nexus'],                // Chronos also unlocks Nexus
+              'nexus': ['entropy', 'oracle'],      // Nexus unlocks Entropy and Oracle
+              'entropy': ['abyss'],                // Entropy unlocks Abyss
+              'oracle': ['abyss'],                 // Oracle also unlocks Abyss
+              'abyss': ['transcendence'],          // Abyss unlocks Transcendence
+            };
+            
+            const sectorsToUnlock = sectorUnlockMap[currentSectorId] || [];
+            if (sectorsToUnlock.length > 0) {
+              setUnlockedSectors(prevUnlocked => {
+                const newUnlocked = [...prevUnlocked];
+                sectorsToUnlock.forEach(sectorId => {
+                  if (!newUnlocked.includes(sectorId)) {
+                    newUnlocked.push(sectorId);
+                  }
+                });
+                return newUnlocked;
+              });
+            }
+          }
+        }
+        
+        return newCompleted;
+      });
     }
     
     navigateTo('reflection');
-  }, [navigateTo, appState.currentChamberId]);
+  }, [navigateTo, appState.currentChamberId, appState.currentSectorId]);
   
   const handleChamberSelect = useCallback((chamberId: string) => {
     navigateTo('trial', { chamberId });
@@ -316,6 +366,65 @@ export const CosmosMindApp: React.FC = () => {
       }
     }, 100);
   }, []);
+  
+  // ── Hardware Back Button Handler ──
+  useEffect(() => {
+    const handleBackPress = () => {
+      const { currentScreen, previousScreen, currentSectorId } = appState;
+      
+      // Define back navigation logic for each screen
+      switch (currentScreen) {
+        case 'void':
+          // On void screen, let app close (return false)
+          return false;
+          
+        case 'nexus':
+          // On nexus (main hub), let app close
+          return false;
+          
+        case 'sector':
+          // Go back to nexus
+          navigateTo('nexus');
+          return true;
+          
+        case 'trial':
+          // Go back to sector if we came from there, otherwise nexus
+          if (currentSectorId) {
+            navigateTo('sector', { sectorId: currentSectorId });
+          } else {
+            navigateTo('nexus');
+          }
+          return true;
+          
+        case 'reflection':
+          // Go back to nexus
+          setCurrentReflection(null);
+          navigateTo('nexus');
+          return true;
+          
+        case 'profile':
+          // Go back to nexus
+          navigateTo('nexus');
+          return true;
+          
+        case 'cosmos':
+          // Go back to nexus
+          navigateTo('nexus');
+          return true;
+          
+        default:
+          // Default: go to nexus
+          navigateTo('nexus');
+          return true;
+      }
+    };
+    
+    // Add event listener
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', handleBackPress);
+    
+    // Cleanup
+    return () => backHandler.remove();
+  }, [appState, navigateTo]);
   
   // ── Nav Bar Configuration ──
   const navItems = [

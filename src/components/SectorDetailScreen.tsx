@@ -266,7 +266,7 @@ export const SectorDetailScreen: React.FC<SectorDetailScreenProps> = ({
           ]}
         >
           <TouchableOpacity onPress={onBack} style={styles.backButton}>
-            <Text style={styles.backButtonText}>← RETURN</Text>
+            <Text style={styles.backButtonText}>← RETURNS</Text>
           </TouchableOpacity>
           
           {/* Sector Icon & Title */}

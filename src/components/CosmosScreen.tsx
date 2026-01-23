@@ -79,26 +79,31 @@ const COLORS = {
 
 // Sector positions on the galaxy map (normalized 0-1)
 const SECTOR_POSITIONS: Record<string, { x: number; y: number }> = {
-  genesis: { x: 0.5, y: 0.55 },      // Center - starting point
-  prisma: { x: 0.25, y: 0.35 },     // Upper left
-  memoria: { x: 0.75, y: 0.35 },    // Upper right
-  logica: { x: 0.2, y: 0.65 },      // Lower left
-  flux: { x: 0.8, y: 0.65 },        // Lower right
-  nexus_prime: { x: 0.5, y: 0.25 }, // Top center (advanced)
-  void_heart: { x: 0.5, y: 0.8 },   // Bottom center (endgame)
+  genesis: { x: 0.5, y: 0.55 },       // Center - starting point
+  prisma: { x: 0.25, y: 0.4 },        // Upper left
+  void: { x: 0.75, y: 0.4 },          // Upper right
+  axiom: { x: 0.2, y: 0.6 },          // Lower left
+  chronos: { x: 0.8, y: 0.6 },        // Lower right
+  nexus: { x: 0.5, y: 0.25 },         // Top center
+  entropy: { x: 0.3, y: 0.75 },       // Bottom left
+  oracle: { x: 0.7, y: 0.75 },        // Bottom right
+  abyss: { x: 0.5, y: 0.85 },         // Bottom center
+  transcendence: { x: 0.5, y: 0.15 }, // Very top (endgame)
 };
 
 // Connections between sectors (paths through the cosmos)
 const SECTOR_CONNECTIONS: [string, string][] = [
   ['genesis', 'prisma'],
-  ['genesis', 'memoria'],
-  ['genesis', 'logica'],
-  ['genesis', 'flux'],
-  ['prisma', 'nexus_prime'],
-  ['memoria', 'nexus_prime'],
-  ['logica', 'void_heart'],
-  ['flux', 'void_heart'],
-  ['nexus_prime', 'void_heart'],
+  ['genesis', 'void'],
+  ['prisma', 'axiom'],
+  ['void', 'chronos'],
+  ['axiom', 'nexus'],
+  ['chronos', 'nexus'],
+  ['nexus', 'entropy'],
+  ['nexus', 'oracle'],
+  ['entropy', 'abyss'],
+  ['oracle', 'abyss'],
+  ['abyss', 'transcendence'],
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────────
