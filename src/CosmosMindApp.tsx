@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-// 🌌 COSMOS MIND - A Living Cognitive Universe
+// 🧩 PUZZLE MIND - A Living Cognitive Universe
 // Built with the philosophy of 100-year experience elite studios
 // "The game feels smarter than the player, alive when untouched, deeper every session"
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -12,6 +12,9 @@ import {
   Animated,
   Platform,
   BackHandler,
+  ActivityIndicator,
+  Text,
+  Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
@@ -24,6 +27,9 @@ import { visualEngine, CINEMATIC_EASING } from './engine/VisualEngine';
 import dialogueSystem from './systems/DialogueSystem';
 import { eventScheduler, generateDailyTrial } from './universe/EventSystem';
 import { SECTORS, getSectorById, getChamberById } from './universe/UniverseStructure';
+
+// Storage - Persistent Data
+import gameStorage, { SessionRecord } from './storage/GameStorage';
 
 // Components
 import {
@@ -175,6 +181,10 @@ const createMockReflection = (): SessionReflection => ({
 // ─────────────────────────────────────────────────────────────────────────────────
 
 export const CosmosMindApp: React.FC = () => {
+  // ── Loading State ──
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadingMessage, setLoadingMessage] = useState('Awakening...');
+  
   // ── State Management ──
   const [appState, setAppState] = useState<AppState>({
     currentScreen: 'void',
@@ -192,8 +202,57 @@ export const CosmosMindApp: React.FC = () => {
   const [completedChambers, setCompletedChambers] = useState<string[]>([]);
   const [dailyTrial, setDailyTrial] = useState<DailyTrial | null>(null);
   
+  // ── Session tracking ──
+  const sessionStartTime = useRef<number>(0);
+  const sessionRoundsPlayed = useRef<number>(0);
+  const sessionTotalResponseTime = useRef<number>(0);
+  const sessionCorrectAnswers = useRef<number>(0);
+  
   // ── Animation Values ──
   const screenTransition = useRef(new Animated.Value(1)).current;
+  
+  // ── Initialize from persistent storage ──
+  useEffect(() => {
+    const initializeGame = async () => {
+      try {
+        setLoadingMessage('Loading mind data...');
+        const savedData = await gameStorage.initialize();
+        
+        // Load persisted data into state
+        setPlayerMind(savedData.playerMind);
+        setUnlockedSectors(savedData.unlockedSectors);
+        setSectorProgress(savedData.sectorProgress);
+        setCompletedChambers(savedData.completedChambers);
+        
+        // Check if this is truly first time (no sessions played)
+        const isFirstTime = savedData.playerMind.totalSessions === 0;
+        
+        setAppState(prev => ({
+          ...prev,
+          isFirstTime,
+        }));
+        
+        setLoadingMessage('Ready');
+        
+        // Small delay for smooth transition
+        setTimeout(() => {
+          setIsLoading(false);
+        }, 500);
+        
+        console.log('🎮 Game initialized with saved data:', {
+          sessions: savedData.playerMind.totalSessions,
+          accuracy: Math.round(savedData.playerMind.lifetimeAccuracy * 100) + '%',
+          completedChambers: savedData.completedChambers.length,
+          unlockedSectors: savedData.unlockedSectors,
+        });
+      } catch (error) {
+        console.error('Failed to initialize game:', error);
+        setIsLoading(false);
+      }
+    };
+    
+    initializeGame();
+  }, []);
   
   // ── Navigation ──
   const navigateTo = useCallback((screen: ScreenType, options?: { 
@@ -253,77 +312,130 @@ export const CosmosMindApp: React.FC = () => {
     navigateTo('trial', { sectorId: 'genesis', chamberId: 'daily_challenge' });
   }, [navigateTo, dailyTrial]);
   
-  const handleSessionComplete = useCallback((score: number, accuracy: number) => {
-    // Generate reflection
-    const reflection = createMockReflection();
-    setCurrentReflection(reflection);
-    
-    // Update player mind
-    setPlayerMind(prev => ({
-      ...prev,
-      totalSessions: prev.totalSessions + 1,
-      totalTrials: prev.totalTrials + 1,
-      lifetimeAccuracy: (prev.lifetimeAccuracy * prev.totalTrials + accuracy) / (prev.totalTrials + 1),
-      lastUpdated: Date.now(),
-    }));
-    
-    // Mark chamber as completed and check for sector unlock
-    if (appState.currentChamberId && appState.currentSectorId) {
-      const currentSectorId = appState.currentSectorId;
-      const currentChamberId = appState.currentChamberId;
-      
-      setCompletedChambers(prev => {
-        const newCompleted = prev.includes(currentChamberId) 
-          ? prev 
-          : [...prev, currentChamberId];
-        
-        // Get current sector info
-        const currentSector = SECTORS.find(s => s.id === currentSectorId);
-        if (currentSector) {
-          // Count completed chambers for this sector
-          const sectorChamberIds = currentSector.chambers.map(c => c.id);
-          const completedInSector = newCompleted.filter(id => sectorChamberIds.includes(id)).length;
-          const totalInSector = currentSector.totalChambers;
-          
-          // Update sector progress
-          setSectorProgress(prevProgress => ({
-            ...prevProgress,
-            [currentSectorId]: completedInSector / totalInSector,
-          }));
-          
-          // Check if sector is now complete - unlock next sectors
-          if (completedInSector >= totalInSector) {
-            // Define sector unlock order (matching actual SECTORS)
-            const sectorUnlockMap: Record<string, string[]> = {
-              'genesis': ['prisma', 'void'],       // Genesis unlocks Prisma and Void
-              'prisma': ['axiom'],                 // Prisma unlocks Axiom
-              'void': ['chronos'],                 // Void unlocks Chronos
-              'axiom': ['nexus'],                  // Axiom unlocks Nexus
-              'chronos': ['nexus'],                // Chronos also unlocks Nexus
-              'nexus': ['entropy', 'oracle'],      // Nexus unlocks Entropy and Oracle
-              'entropy': ['abyss'],                // Entropy unlocks Abyss
-              'oracle': ['abyss'],                 // Oracle also unlocks Abyss
-              'abyss': ['transcendence'],          // Abyss unlocks Transcendence
-            };
-            
-            const sectorsToUnlock = sectorUnlockMap[currentSectorId] || [];
-            if (sectorsToUnlock.length > 0) {
-              setUnlockedSectors(prevUnlocked => {
-                const newUnlocked = [...prevUnlocked];
-                sectorsToUnlock.forEach(sectorId => {
-                  if (!newUnlocked.includes(sectorId)) {
-                    newUnlocked.push(sectorId);
-                  }
-                });
-                return newUnlocked;
-              });
-            }
-          }
-        }
-        
-        return newCompleted;
-      });
+  const handleSessionStart = useCallback(() => {
+    // Track session start
+    sessionStartTime.current = Date.now();
+    sessionRoundsPlayed.current = 0;
+    sessionTotalResponseTime.current = 0;
+    sessionCorrectAnswers.current = 0;
+  }, []);
+
+  const handleRoundComplete = useCallback((isCorrect: boolean, responseTime: number) => {
+    // Track round data for the session
+    sessionRoundsPlayed.current += 1;
+    sessionTotalResponseTime.current += responseTime;
+    if (isCorrect) {
+      sessionCorrectAnswers.current += 1;
     }
+  }, []);
+
+  const handleSessionComplete = useCallback((score: number, accuracy: number) => {
+    const sessionDuration = Math.round((Date.now() - sessionStartTime.current) / 1000);
+    const avgResponseTime = sessionRoundsPlayed.current > 0 
+      ? sessionTotalResponseTime.current / sessionRoundsPlayed.current 
+      : 800;
+    
+    // Record session to persistent storage
+    if (appState.currentSectorId && appState.currentChamberId) {
+      gameStorage.recordSession({
+        sectorId: appState.currentSectorId,
+        chamberId: appState.currentChamberId,
+        accuracy,
+        responseTime: avgResponseTime,
+        score,
+        roundsPlayed: sessionRoundsPlayed.current || 1,
+        duration: sessionDuration,
+      });
+      
+      // Mark chamber as completed
+      gameStorage.completeChamber(appState.currentChamberId);
+      
+      // Update sector progress
+      const currentSector = SECTORS.find(s => s.id === appState.currentSectorId);
+      if (currentSector) {
+        const completedChamberIds = gameStorage.getCompletedChambers();
+        const sectorChamberIds = currentSector.chambers.map(c => c.id);
+        const completedInSector = completedChamberIds.filter(id => sectorChamberIds.includes(id)).length;
+        const progress = completedInSector / currentSector.totalChambers;
+        
+        gameStorage.updateSectorProgress(appState.currentSectorId, progress);
+        
+        // Check if sector is now complete - unlock next sectors
+        if (completedInSector >= currentSector.totalChambers) {
+          const sectorUnlockMap: Record<string, string[]> = {
+            'genesis': ['prisma', 'void'],
+            'prisma': ['axiom'],
+            'void': ['chronos'],
+            'axiom': ['nexus'],
+            'chronos': ['nexus'],
+            'nexus': ['entropy', 'oracle'],
+            'entropy': ['abyss'],
+            'oracle': ['abyss'],
+            'abyss': ['transcendence'],
+          };
+          
+          const sectorsToUnlock = sectorUnlockMap[appState.currentSectorId] || [];
+          sectorsToUnlock.forEach(sectorId => {
+            gameStorage.unlockSector(sectorId);
+          });
+        }
+      }
+      
+      // Force save to persist data immediately
+      gameStorage.forceSave();
+      
+      // Sync state with storage
+      setPlayerMind(gameStorage.getPlayerMind());
+      setCompletedChambers(gameStorage.getCompletedChambers());
+      setUnlockedSectors(gameStorage.getUnlockedSectors());
+      setSectorProgress(gameStorage.getAllSectorProgress());
+    }
+    
+    // Generate reflection based on real data
+    const savedMind = gameStorage.getPlayerMind();
+    const reflection: SessionReflection = {
+      headline: accuracy >= 0.8 ? 'Excellent Performance!' : accuracy >= 0.6 ? 'Growing Stronger' : 'Keep Practicing',
+      subheadline: `You completed ${sessionRoundsPlayed.current} rounds with ${Math.round(accuracy * 100)}% accuracy.`,
+      insights: [
+        {
+          id: 'accuracy_insight',
+          category: accuracy >= savedMind.lifetimeAccuracy ? 'mastery' : 'growth',
+          message: accuracy >= savedMind.lifetimeAccuracy 
+            ? `Above your lifetime average of ${Math.round(savedMind.lifetimeAccuracy * 100)}%!`
+            : `Room to grow. Your lifetime average is ${Math.round(savedMind.lifetimeAccuracy * 100)}%.`,
+          subtext: `Session accuracy: ${Math.round(accuracy * 100)}%`,
+          conditions: [],
+          priority: 80,
+          cooldown: 0,
+          tone: 'encouraging',
+          duration: 'standard',
+        },
+        {
+          id: 'speed_insight',
+          category: avgResponseTime < savedMind.reactionProfile.mean ? 'tempo' : 'pattern',
+          message: avgResponseTime < savedMind.reactionProfile.mean
+            ? `Quick thinking! Faster than your average of ${Math.round(savedMind.reactionProfile.mean)}ms.`
+            : `Your reaction time averaged ${Math.round(avgResponseTime)}ms.`,
+          subtext: `Response time: ${Math.round(avgResponseTime)}ms`,
+          conditions: [],
+          priority: 60,
+          cooldown: 0,
+          tone: 'encouraging',
+          duration: 'standard',
+        },
+      ],
+      highlightedMetric: {
+        label: 'ACCURACY',
+        value: `${Math.round(accuracy * 100)}%`,
+        context: accuracy >= savedMind.lifetimeAccuracy ? 'Above average!' : 'Keep improving',
+        trend: accuracy >= savedMind.lifetimeAccuracy ? 'up' : 'stable',
+      },
+      suggestion: savedMind.totalSessions < 5 
+        ? 'Complete more sessions to unlock new dimensions'
+        : 'Try challenging yourself with harder chambers',
+      overallTone: accuracy >= 0.7 ? 'encouraging' : 'challenging',
+    };
+    setCurrentReflection(reflection);
     
     navigateTo('reflection');
   }, [navigateTo, appState.currentChamberId, appState.currentSectorId]);
@@ -542,6 +654,29 @@ export const CosmosMindApp: React.FC = () => {
   // ── Show/Hide Nav Bar ──
   const showNavBar = ['nexus', 'cosmos', 'profile'].includes(appState.currentScreen);
   
+  // ── Loading Screen ──
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <StatusBar barStyle="light-content" />
+        <LinearGradient
+          colors={['#0A0A1A', '#050510']}
+          style={StyleSheet.absoluteFill}
+        />
+        <View style={styles.loadingContent}>
+          <Image
+            source={require('../assets/icon.png')}
+            style={styles.loadingIcon}
+            resizeMode="contain"
+          />
+          <Text style={styles.loadingTitle}>PUZZLE MIND</Text>
+          <ActivityIndicator size="small" color="#7B68EE" style={{ marginTop: 24 }} />
+          <Text style={styles.loadingMessage}>{loadingMessage}</Text>
+        </View>
+      </View>
+    );
+  }
+  
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
@@ -587,6 +722,33 @@ const styles = StyleSheet.create({
   },
   screenContainer: {
     flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    backgroundColor: '#000000',
+  },
+  loadingContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingIcon: {
+    width: 80,
+    height: 80,
+    marginBottom: 16,
+    borderRadius: 20,
+  },
+  loadingTitle: {
+    fontSize: 28,
+    fontWeight: '200',
+    color: '#ffffff',
+    letterSpacing: 8,
+  },
+  loadingMessage: {
+    fontSize: 12,
+    color: '#666',
+    letterSpacing: 2,
+    marginTop: 12,
   },
 });
 
